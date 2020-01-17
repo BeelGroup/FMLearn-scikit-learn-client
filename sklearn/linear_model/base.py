@@ -37,6 +37,9 @@ from ..utils._seq_dataset import ArrayDataset64, CSRDataset64
 from ..utils.validation import check_is_fitted
 from ..preprocessing.data import normalize as f_normalize
 
+import requests as req
+import json
+
 # TODO: bayesian_ridge_regression and bayesian_regression_ard
 # should be squashed into its respective objects.
 
@@ -230,6 +233,42 @@ class LinearModel(BaseEstimator, metaclass=ABCMeta):
             self.intercept_ = y_offset - np.dot(X_offset, self.coef_.T)
         else:
             self.intercept_ = 0.
+
+    def _jprint(self, obj):
+        # create a formatted string of the Python JSON object
+        text = json.dumps(obj, sort_keys=True, indent=4)
+        print(text)
+
+    def test_publish(self, algorithm_name = 'Linear Regrission', metric_name = 'RMSE', metric_value = '0', dataset_hash = 'asdfasdfasdfd'):
+        """
+        Test Function to send message to the fml backend server!
+        """
+        data = {}
+        data['algorithm_name'] = algorithm_name
+        data['metric_name'] = metric_name
+        data['metric_value'] = metric_value
+        data['dataset_hash'] = dataset_hash
+        self._jprint(self._send_msg(data))
+
+    def _publish(self, algorithm_name, metric_name, metric_value, dataset_hash):
+        """
+        Publishes the data collected to the federated meta learning API
+        """
+        data = {}
+        data['algorithm_name'] = algorithm_name
+        data['metric_name'] = metric_name
+        data['metric_value'] = metric_value
+        data['dataset_hash'] = dataset_hash
+        return self._send_msg(data)
+
+    def _send_msg(self, data):
+        """
+        API call to the federated meta learning server
+        """
+        url = 'http://127.0.0.1:5000/metric'
+        res = req.post(url, json=data)
+        print(res.status_code)
+        return res.json()
 
 
 # XXX Should this derive from LinearModel? It should be a mixin, not an ABC.
