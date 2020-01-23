@@ -68,6 +68,9 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('svm')
     config.add_subpackage('linear_model')
 
+    # submodules which are used for federated meta learning
+    config.add_subpackage('fml')
+
     # add cython extension module for isotonic regression
     config.add_extension('_isotonic',
                          sources=['_isotonic.pyx'],
