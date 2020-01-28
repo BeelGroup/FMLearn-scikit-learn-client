@@ -1,5 +1,7 @@
-import requests as req
 import json
+import requests as req
+from cryptography.fernet import Fernet
+from fml.encryption.key import FMLKey
 
 
 class FMLClient:
@@ -20,10 +22,15 @@ class FMLClient:
         print(res.status_code)
         return res.json()
 
-    def publish(self, algorithm_name, metric_name, metric_value, dataset_hash):
+    def publish(self, algorithm_name, metric_name, metric_value, dataset):
         """
         Publishes the data collected to the federated meta learning API
         """
+        key = FMLKey()
+        f = Fernet(key.getKey())
+        # converts the dataset to a byte object and then encrypts it and converts it to string
+        dataset_hash = f.encrypt(dataset.encode()).decode("utf-8")
+
         data = {}
         data['algorithm_name'] = algorithm_name
         data['metric_name'] = metric_name
@@ -31,8 +38,8 @@ class FMLClient:
         data['dataset_hash'] = dataset_hash
         return self._send_msg(data)
 
-    def _test_publish(self, algorithm_name='Linear Regrission', metric_name='RMSE', metric_value='0', dataset_hash='asdfasdfasdfd'):
+    def _test_publish(self, algorithm_name='Linear Regrission', metric_name='RMSE', metric_value='0', dataset='asdfasdfasdfd'):
         """
         Test Function to send message to the fml backend server!
         """
-        self._jprint(self.publish(algorithm_name, metric_name, metric_value, dataset_hash))
+        self._jprint(self.publish(algorithm_name, metric_name, metric_value, dataset))
