@@ -1,7 +1,7 @@
 import json
 import requests as req
 from cryptography.fernet import Fernet
-from fml.encription.key import FMLKey
+from fml.encryption.key import FMLKey
 
 
 class FMLClient:
@@ -43,4 +43,3 @@ class FMLClient:
         Test Function to send message to the fml backend server!
         """
         self._jprint(self.publish(algorithm_name, metric_name, metric_value, dataset))
-        

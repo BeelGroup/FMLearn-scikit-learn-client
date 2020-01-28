@@ -11,7 +11,7 @@ def configuration(parent_package='', top_path=None):
     if os.name == 'posix':
         libraries.append('m')
 
-    config.add_subpackage('encription')
+    config.add_subpackage('encryption')
     return config
 
 
