@@ -43,3 +43,4 @@ class FMLClient:
         Test Function to send message to the fml backend server!
         """
         self._jprint(self.publish(algorithm_name, metric_name, metric_value, dataset))
+        
