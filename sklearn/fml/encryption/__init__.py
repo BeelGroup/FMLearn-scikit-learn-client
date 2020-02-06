@@ -2,6 +2,6 @@
 The :mod:`sklearn.fml.encryption` module implements Federated Meta Learning
 """
 
-from .key import FMLKey
+from .fml_hash import FMLHash
 
-__all__ = ['FMLKey']
+__all__ = ['FMLHash']
