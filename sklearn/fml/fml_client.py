@@ -1,5 +1,6 @@
 import json
 import requests as req
+from fml.constants import URI
 from sklearn import linear_model
 from fml.encryption.fml_hash import FMLHash
 
@@ -13,12 +14,11 @@ class FMLClient:
         text = json.dumps(obj, sort_keys=True, indent=4)
         print(text)
 
-    def _send_msg(self, data):
+    def _post_msg(self, uri, data):
         """
         API call to the federated meta learning server
         """
-        url = 'http://127.0.0.1:5000/metric'
-        res = req.post(url, json=data)
+        res = req.post(uri, json=data)
         print(res.status_code)
         return res.json()
 
@@ -26,9 +26,8 @@ class FMLClient:
         """
         Publishes the data collected to the federated meta learning API
         """
-        h = FMLHash()
-        # converts the dataset to a byte object and then encrypts it and converts it to string
-        dataset_hash = h.hashValAndReturnString(dataset)
+        dataset_hash = FMLHash().hashValAndReturnString(dataset)
+
         algorithm_name = str(model.__class__)
 
         data = {}
@@ -36,7 +35,31 @@ class FMLClient:
         data['metric_name'] = metric_name
         data['metric_value'] = metric_value
         data['dataset_hash'] = dataset_hash
-        return self._send_msg(data)
+
+        return self._post_msg(URI().post_metric(), data)
+
+
+    def retrieve_all_metrics(self, dataset):
+        """
+        Function to retrieve all metric that matches the dataset_hash
+        """
+        dataset_hash = FMLHash().hashValAndReturnString(dataset)
+        
+        data = {}
+        data['dataset_hash'] = dataset_hash
+
+        return self._post_msg(URI().retrieve_all(), data)
+
+    def retrieve_best_metric(self, dataset):
+        """
+        Function to retrieve metric that best matches the dataset_hash
+        """
+        dataset_hash = FMLHash().hashValAndReturnString(dataset)
+        
+        data = {}
+        data['dataset_hash'] = dataset_hash
+
+        return self._post_msg(URI().retrieve_best(), data)
 
     def _test_publish(self, model=linear_model.LinearRegression(), metric_name='RMSE', metric_value='0', dataset='asdfasdfasdfd'):
         """
