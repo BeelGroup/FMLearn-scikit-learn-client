@@ -16,6 +16,6 @@ class FMLHash:
         """
         converts the value to a byte object and then hashes it and converts it to string
         """
-        m = hashlib.sha1()
+        m = hashlib.sha256()
         m.update(value.encode())
         return m.digest().decode("unicode_escape")
