@@ -50,16 +50,22 @@ class FMLClient:
 
         return self._post_msg(URI().retrieve_all(), data)
 
-    def retrieve_best_metric(self, dataset):
+    def retrieve_best_metric(self, dataset, min=True):
         """
         Function to retrieve metric that best matches the dataset_hash
+        @min = True fetch the minimum value of the metric
+        @min = False fetches the maximum value of the metric
         """
         dataset_hash = FMLHash().hashValAndReturnString(dataset)
         
         data = {}
         data['dataset_hash'] = dataset_hash
 
-        return self._post_msg(URI().retrieve_best(), data)
+        if min:
+            return self._post_msg(URI().retrieve_best_min(), data)
+        else:
+            return self._post_msg(URI().retrieve_best_max(), data)
+
 
     def _test_publish(self, model=linear_model.LinearRegression(), metric_name='RMSE', metric_value='0', dataset='asdfasdfasdfd'):
         """
