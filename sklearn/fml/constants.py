@@ -1,5 +1,5 @@
 class URI:
-    _SERVER = 'http://127.0.0.1:5000'
+    _SERVER = 'https://fmlearn.herokuapp.com/'
 
     _METRIC = '/metric'
     _RETRIEVE = '/retrieve'
