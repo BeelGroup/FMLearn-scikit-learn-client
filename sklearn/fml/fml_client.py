@@ -22,7 +22,7 @@ class FMLClient:
         print(res.status_code)
         return res.json()
 
-    def publish(self, model, metric_name, metric_value, dataset):
+    def publish(self, model, metric_name, metric_value, dataset, params=None):
         """
         Publishes the data collected to the federated meta learning API
         """
@@ -35,6 +35,16 @@ class FMLClient:
         data['metric_name'] = metric_name
         data['metric_value'] = metric_value
         data['dataset_hash'] = dataset_hash
+        if params != None:
+            model_params = []
+            for key, value in params.items():
+                new_param = {}
+                new_param['param_name'] = str(key)
+                new_param['param_value'] = str(value)
+                model_params.append(new_param)
+            data['params'] = model_params
+        else:
+            data['params'] = ""
 
         return self._post_msg(URI().post_metric(), data)
 
