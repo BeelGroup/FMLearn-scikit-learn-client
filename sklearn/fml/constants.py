@@ -1,11 +1,16 @@
 class URI:
-    _SERVER = 'https://fmlearn.herokuapp.com/'
+    _SERVER = 'https://fmlearn.herokuapp.com'
+    _LOCAL = 'http://127.0.0.1:5000'
 
     _METRIC = '/metric'
     _RETRIEVE = '/retrieve'
     _MAX = '/max'
     _MIN = '/min'
     _ALL = '/all'
+
+    def __init__(self, debug=False):
+        if debug:
+            self._SERVER = self._LOCAL
 
     def post_metric(self):
         return self._SERVER + self._METRIC
