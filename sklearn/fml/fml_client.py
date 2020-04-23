@@ -1,12 +1,28 @@
 import json
 import requests as req
-from fml.constants import URI
-from sklearn import linear_model
-from fml.encryption.fml_hash import FMLHash
 
+from sklearn import linear_model
+from sklearn.utils.multiclass import type_of_target
+
+from autosklearn import constants as ask_const
+from autosklearn.data.xy_data_manager import XYDataManager
+from autosklearn.smbo import EXCLUDE_META_FEATURES_CLASSIFICATION, EXCLUDE_META_FEATURES_REGRESSION
+from autosklearn.metalearning.metafeatures.metafeatures import calculate_all_metafeatures_with_labels
+
+from fml.constants import URI
+from fml.encryption.fml_hash import FMLHash
 
 class FMLClient:
     def __init__(self):
+        self._task_mapping = {
+            'multilabel-indicator': ask_const.MULTILABEL_CLASSIFICATION,
+            'multiclass': ask_const.MULTICLASS_CLASSIFICATION,
+            'binary': ask_const.BINARY_CLASSIFICATION
+        }
+        self.data_manager = None
+        self.dataset_name = None
+        self.meta_features = None
+        self.target_type = None
         return
 
     def _jprint(self, obj):
@@ -22,11 +38,46 @@ class FMLClient:
         print(res.status_code)
         return res.json()
 
-    def publish(self, model, metric_name, metric_value, dataset, params=None):
+    def set_dataset(self, X, y, X_test=None, y_test=None, feat_type=None):
+        self.target_type = type_of_target(y)
+        task = self._task_mapping.get(self.target_type)
+        if task == None:
+            task = ask_const.REGRESSION
+
+        self.dataset_name = FMLHash().hashValAndReturnString(str(X))
+        self.data_manager = XYDataManager(X, y, X_test, y_test, task, feat_type, self.dataset_name)
+
+        self._calculate_metafeatures()
+
+    def _calculate_metafeatures(self):      
+        categorical = [True if feat_type.lower() in ['categorical'] else False
+                   for feat_type in self.data_manager.feat_type]
+
+        EXCLUDE_META_FEATURES = EXCLUDE_META_FEATURES_CLASSIFICATION \
+            if self.data_manager.info['task'] in ask_const.CLASSIFICATION_TASKS else EXCLUDE_META_FEATURES_REGRESSION
+
+        if self.data_manager.info['task'] in [ask_const.MULTICLASS_CLASSIFICATION, ask_const.BINARY_CLASSIFICATION,
+                            ask_const.MULTILABEL_CLASSIFICATION, ask_const.REGRESSION]:
+
+            result = calculate_all_metafeatures_with_labels(
+                self.data_manager.data['X_train'], 
+                self.data_manager.data['Y_train'], 
+                categorical=categorical,
+                dataset_name=self.dataset_name,
+                dont_calculate=EXCLUDE_META_FEATURES, )
+            for key in list(result.metafeature_values.keys()):
+                if result.metafeature_values[key].type_ != 'METAFEATURE':
+                    del result.metafeature_values[key]
+
+        else:
+            result = None
+
+        self.meta_features = result
+
+    def publish(self, model, metric_name, metric_value, params=None):
         """
         Publishes the data collected to the federated meta learning API
         """
-        dataset_hash = FMLHash().hashValAndReturnString(dataset)
 
         algorithm_name = str(model.__class__)
 
@@ -34,7 +85,9 @@ class FMLClient:
         data['algorithm_name'] = algorithm_name
         data['metric_name'] = metric_name
         data['metric_value'] = metric_value
-        data['dataset_hash'] = dataset_hash
+        data['dataset_hash'] = self.dataset_name
+        data['data_meta_features'] = self.meta_features
+        data['target_type'] = self.target_type
         if params != None:
             model_params = []
             for key, value in params.items():
@@ -46,7 +99,8 @@ class FMLClient:
         else:
             data['params'] = ""
 
-        return self._post_msg(URI().post_metric(), data)
+        print(data)
+        #return self._post_msg(URI().post_metric(), data)
 
 
     def retrieve_all_metrics(self, dataset):
