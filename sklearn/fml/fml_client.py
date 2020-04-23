@@ -22,36 +22,45 @@ class FMLClient:
             'multiclass': ask_const.MULTICLASS_CLASSIFICATION,
             'binary': ask_const.BINARY_CLASSIFICATION
         }
-        self.data_manager = None
         self.dataset_name = None
-        self.meta_features = None
+        self.data_manager = None
         self.target_type = None
+        self.meta_features = None
+        self.pub_meta_feat = None
         return
 
     def _perform_input_checks(self, X, y):
+        """
+        Input Validation method for the dataset(X, y)
+        """
         X = self._check_X(X)
         if y is not None:
             y = self._check_y(y)
         return X, y
 
     def _check_X(self, X):
-        X = check_array(X, accept_sparse="csr",
-                                      force_all_finite=False)
+        """
+        Input Validation method for dataset's features
+        """
+        X = check_array(X, accept_sparse="csr", force_all_finite=False)
         if scipy.sparse.issparse(X):
             X.sort_indices()
         return X
 
     def _check_y(self, y):
+        """
+        Input Validation method for dataset's target
+        """
         y = check_array(y, ensure_2d=False)
-
         y = np.atleast_1d(y)
         if y.ndim == 2 and y.shape[1] == 1:
             y = np.ravel(y)
-
         return y
 
     def _jprint(self, obj):
-        # create a formatted string of the Python JSON object
+        """
+        create a formatted string of the Python JSON object
+        """
         text = json.dumps(obj, sort_keys=True, indent=4)
         print(text)
 
@@ -64,6 +73,9 @@ class FMLClient:
         return res.json()
 
     def _get_meta_feaures(self):
+        """
+        Function which @returns the dataset's meta features as a key, value pair
+        """
         meta_feat_map = {}
 
         if self.meta_features == None:
@@ -76,10 +88,17 @@ class FMLClient:
         return meta_feat_map
 
     def _get_meta_feaures_for_publish(self):
+        """
+        Function which @returns the dataset's meta features in a format
+        which can be used to in the FMLearn application
+        """
         meta_feat_list = []
 
         if self.meta_features == None:
             return meta_feat_list
+
+        if self.pub_meta_feat is not None:
+            return self.pub_meta_feat
     
         metafeature_values = self.meta_features.metafeature_values
         for key, val in metafeature_values.items():
@@ -88,9 +107,17 @@ class FMLClient:
             new_feat['feat_value'] = str(val.value)
             meta_feat_list.append(new_feat)
         
-        return meta_feat_list
+        self.pub_meta_feat = meta_feat_list
 
-    def _calculate_metafeatures(self):      
+        return self.pub_meta_feat
+
+    def _calculate_metafeatures(self):
+        """
+        A function to calculate the dataset's meta features
+        internally called Auto-SKLearn's caclulate_all_metafeatures_with_labels()
+        and stores the returned DatasetMetaFeatures Object
+        """
+
         categorical = [True if feat_type.lower() in ['categorical'] else False
                    for feat_type in self.data_manager.feat_type]
 
@@ -117,6 +144,10 @@ class FMLClient:
         self.meta_features = result
 
     def set_dataset(self, X, y, X_test=None, y_test=None, feat_type=None):
+        """
+        Stores the obtained dataset parameters in the XYDataManager of auto-sklearn
+        and caclulates the metafeatures of the dataset
+        """
 
         X, y = self._perform_input_checks(X, y)
         if X_test is not None:
