@@ -16,7 +16,7 @@ from fml.constants import URI
 from fml.encryption.fml_hash import FMLHash
 
 class FMLClient:
-    def __init__(self):
+    def __init__(self, debug=False):
         self._task_mapping = {
             'multilabel-indicator': ask_const.MULTILABEL_CLASSIFICATION,
             'multiclass': ask_const.MULTICLASS_CLASSIFICATION,
@@ -27,6 +27,7 @@ class FMLClient:
         self.target_type = None
         self.meta_features = None
         self.pub_meta_feat = None
+        self.uri = URI(debug=debug)
         return
 
     def _perform_input_checks(self, X, y):
@@ -183,6 +184,8 @@ class FMLClient:
         """
         Publishes the data collected to the federated meta learning API
         """
+        if self.data_manager is None:
+            raise ValueError('Data Manager not set, set the dataset using \'set_dataset()\' before \'publish()\'')
 
         algorithm_name = str(model.__class__)
 
@@ -204,8 +207,7 @@ class FMLClient:
         else:
             data['params'] = ""
 
-        print(data)
-        #return self._post_msg(URI().post_metric(), data)
+        return self._post_msg(self.uri.post_metric(), data)
 
 
     def retrieve_all_metrics(self, dataset):
@@ -217,7 +219,7 @@ class FMLClient:
         data = {}
         data['dataset_hash'] = dataset_hash
 
-        return self._post_msg(URI().retrieve_all(), data)
+        return self._post_msg(self.uri.retrieve_all(), data)
 
     def retrieve_best_metric(self, dataset, min=True):
         """
@@ -231,9 +233,9 @@ class FMLClient:
         data['dataset_hash'] = dataset_hash
 
         if min:
-            return self._post_msg(URI().retrieve_best_min(), data)
+            return self._post_msg(self.uri.retrieve_best_min(), data)
         else:
-            return self._post_msg(URI().retrieve_best_max(), data)
+            return self._post_msg(self.uri.retrieve_best_max(), data)
 
 
     def _test_publish(self, model=linear_model.LinearRegression(), metric_name='RMSE', metric_value='0', dataset='asdfasdfasdfd'):
