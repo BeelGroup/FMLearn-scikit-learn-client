@@ -1,7 +1,10 @@
 import json
 import requests as req
+import numpy as np
+import scipy
 
 from sklearn import linear_model
+from sklearn.utils import check_array
 from sklearn.utils.multiclass import type_of_target
 
 from autosklearn import constants as ask_const
@@ -25,6 +28,28 @@ class FMLClient:
         self.target_type = None
         return
 
+    def _perform_input_checks(self, X, y):
+        X = self._check_X(X)
+        if y is not None:
+            y = self._check_y(y)
+        return X, y
+
+    def _check_X(self, X):
+        X = check_array(X, accept_sparse="csr",
+                                      force_all_finite=False)
+        if scipy.sparse.issparse(X):
+            X.sort_indices()
+        return X
+
+    def _check_y(self, y):
+        y = check_array(y, ensure_2d=False)
+
+        y = np.atleast_1d(y)
+        if y.ndim == 2 and y.shape[1] == 1:
+            y = np.ravel(y)
+
+        return y
+
     def _jprint(self, obj):
         # create a formatted string of the Python JSON object
         text = json.dumps(obj, sort_keys=True, indent=4)
@@ -39,6 +64,27 @@ class FMLClient:
         return res.json()
 
     def set_dataset(self, X, y, X_test=None, y_test=None, feat_type=None):
+
+        X, y = self._perform_input_checks(X, y)
+        if X_test is not None:
+            X_test, y_test = self._perform_input_checks(X_test, y_test)
+            if len(y.shape) != len(y_test.shape):
+                raise ValueError('Target value shapes do not match: %s vs %s'
+                                 % (y.shape, y_test.shape))
+
+        if feat_type is not None and len(feat_type) != X.shape[1]:
+            raise ValueError('Array feat_type does not have same number of '
+                             'variables as X has features. %d vs %d.' %
+                             (len(feat_type), X.shape[1]))
+        if feat_type is not None and not all([isinstance(f, str)
+                                              for f in feat_type]):
+            raise ValueError('Array feat_type must only contain strings.')
+        if feat_type is not None:
+            for ft in feat_type:
+                if ft.lower() not in ['categorical', 'numerical']:
+                    raise ValueError('Only `Categorical` and `Numerical` are '
+                                     'valid feature types, you passed `%s`' % ft)
+
         self.target_type = type_of_target(y)
         task = self._task_mapping.get(self.target_type)
         if task == None:
