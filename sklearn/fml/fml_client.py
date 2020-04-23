@@ -63,6 +63,59 @@ class FMLClient:
         print(res.status_code)
         return res.json()
 
+    def _get_meta_feaures(self):
+        meta_feat_map = {}
+
+        if self.meta_features == None:
+            return meta_feat_map
+    
+        metafeature_values = self.meta_features.metafeature_values
+        for key, val in metafeature_values.items():
+            meta_feat_map[key] = val.value
+        
+        return meta_feat_map
+
+    def _get_meta_feaures_for_publish(self):
+        meta_feat_list = []
+
+        if self.meta_features == None:
+            return meta_feat_list
+    
+        metafeature_values = self.meta_features.metafeature_values
+        for key, val in metafeature_values.items():
+            new_feat = {}
+            new_feat['feat_name'] = str(key)
+            new_feat['feat_value'] = str(val.value)
+            meta_feat_list.append(new_feat)
+        
+        return meta_feat_list
+
+    def _calculate_metafeatures(self):      
+        categorical = [True if feat_type.lower() in ['categorical'] else False
+                   for feat_type in self.data_manager.feat_type]
+
+        EXCLUDE_META_FEATURES = EXCLUDE_META_FEATURES_CLASSIFICATION \
+            if self.data_manager.info['task'] in ask_const.CLASSIFICATION_TASKS else EXCLUDE_META_FEATURES_REGRESSION
+
+        if self.data_manager.info['task'] in [ask_const.MULTICLASS_CLASSIFICATION, ask_const.BINARY_CLASSIFICATION,
+                            ask_const.MULTILABEL_CLASSIFICATION, ask_const.REGRESSION]:
+
+            result = calculate_all_metafeatures_with_labels(
+                self.data_manager.data['X_train'], 
+                self.data_manager.data['Y_train'], 
+                categorical=categorical,
+                dataset_name=self.dataset_name,
+                dont_calculate=EXCLUDE_META_FEATURES, )
+
+            for key in list(result.metafeature_values.keys()):
+                if result.metafeature_values[key].type_ != 'METAFEATURE':
+                    del result.metafeature_values[key]
+
+        else:
+            result = None
+
+        self.meta_features = result
+
     def set_dataset(self, X, y, X_test=None, y_test=None, feat_type=None):
 
         X, y = self._perform_input_checks(X, y)
@@ -95,31 +148,6 @@ class FMLClient:
 
         self._calculate_metafeatures()
 
-    def _calculate_metafeatures(self):      
-        categorical = [True if feat_type.lower() in ['categorical'] else False
-                   for feat_type in self.data_manager.feat_type]
-
-        EXCLUDE_META_FEATURES = EXCLUDE_META_FEATURES_CLASSIFICATION \
-            if self.data_manager.info['task'] in ask_const.CLASSIFICATION_TASKS else EXCLUDE_META_FEATURES_REGRESSION
-
-        if self.data_manager.info['task'] in [ask_const.MULTICLASS_CLASSIFICATION, ask_const.BINARY_CLASSIFICATION,
-                            ask_const.MULTILABEL_CLASSIFICATION, ask_const.REGRESSION]:
-
-            result = calculate_all_metafeatures_with_labels(
-                self.data_manager.data['X_train'], 
-                self.data_manager.data['Y_train'], 
-                categorical=categorical,
-                dataset_name=self.dataset_name,
-                dont_calculate=EXCLUDE_META_FEATURES, )
-            for key in list(result.metafeature_values.keys()):
-                if result.metafeature_values[key].type_ != 'METAFEATURE':
-                    del result.metafeature_values[key]
-
-        else:
-            result = None
-
-        self.meta_features = result
-
     def publish(self, model, metric_name, metric_value, params=None):
         """
         Publishes the data collected to the federated meta learning API
@@ -132,7 +160,7 @@ class FMLClient:
         data['metric_name'] = metric_name
         data['metric_value'] = metric_value
         data['dataset_hash'] = self.dataset_name
-        data['data_meta_features'] = self.meta_features
+        data['data_meta_features'] = self._get_meta_feaures_for_publish()
         data['target_type'] = self.target_type
         if params != None:
             model_params = []
