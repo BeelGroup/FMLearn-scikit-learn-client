@@ -7,6 +7,7 @@ class URI:
     _MAX = '/max'
     _MIN = '/min'
     _ALL = '/all'
+    _PREDICT = '/test'
 
     def __init__(self, debug=False):
         if debug:
@@ -23,3 +24,7 @@ class URI:
 
     def retrieve_best_max(self):
         return self._SERVER + self._METRIC + self._RETRIEVE + self._MAX
+
+    def predict_metric(self):
+        return self._SERVER + self._METRIC + self._PREDICT
+

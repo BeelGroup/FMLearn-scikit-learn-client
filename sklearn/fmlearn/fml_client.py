@@ -36,9 +36,17 @@ class FMLClient:
 
     def _post_msg(self, uri, data):
         """
-        API call to the federated meta learning server
+        POST method API call to the federated meta learning server
         """
         res = req.post(uri, json=data)
+        print(res.status_code)
+        return res.json()
+
+    def _get_msg(self, uri, data=None):
+        """
+        GET method API call to the federated meta learning server
+        """
+        res = req.get(uri, json=data)
         print(res.status_code)
         return res.json()
 
@@ -138,6 +146,21 @@ class FMLClient:
         else:
             return self._post_msg(self.uri.retrieve_best_max(), data)
 
+    def predict_metric(self):
+        """
+        Predicts the algorithm to be used for a given dataset using federated meta learning
+        """
+        if self.data_manager is None:
+            raise ValueError('Data Manager not set, set the dataset using \'set_dataset()\' before \'publish()\'')
+
+        utils = MetaFeatures()
+
+        data = {}
+        data['dataset_hash'] = self.dataset_name
+        data['data_meta_features'] = utils.get_meta_feaures_for_publish(self.meta_features, self.pub_meta_feat)
+        data['target_type'] = self.target_type
+
+        return self._get_msg(self.uri.predict_metric(), data)
 
     def _test_publish(self, model=linear_model.LinearRegression(), metric_name='RMSE', metric_value='0', dataset='asdfasdfasdfd'):
         """
