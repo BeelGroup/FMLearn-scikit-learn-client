@@ -1,19 +1,16 @@
 import json
 import requests as req
 import numpy as np
-import scipy
 
 from sklearn import linear_model
-from sklearn.utils import check_array
 from sklearn.utils.multiclass import type_of_target
 
 from autosklearn import constants as ask_const
 from autosklearn.data.xy_data_manager import XYDataManager
-from autosklearn.smbo import EXCLUDE_META_FEATURES_CLASSIFICATION, EXCLUDE_META_FEATURES_REGRESSION
-from autosklearn.metalearning.metafeatures.metafeatures import calculate_all_metafeatures_with_labels
 
-from fml.constants import URI
-from fml.encryption.fml_hash import FMLHash
+from fmlearn.constants import URI
+from fmlearn.encryption.fml_hash import FMLHash
+from fmlearn.metafeatures import MetaFeatures
 
 class FMLClient:
     def __init__(self, debug=False):
@@ -30,34 +27,6 @@ class FMLClient:
         self.uri = URI(debug=debug)
         return
 
-    def _perform_input_checks(self, X, y):
-        """
-        Input Validation method for the dataset(X, y)
-        """
-        X = self._check_X(X)
-        if y is not None:
-            y = self._check_y(y)
-        return X, y
-
-    def _check_X(self, X):
-        """
-        Input Validation method for dataset's features
-        """
-        X = check_array(X, accept_sparse="csr", force_all_finite=False)
-        if scipy.sparse.issparse(X):
-            X.sort_indices()
-        return X
-
-    def _check_y(self, y):
-        """
-        Input Validation method for dataset's target
-        """
-        y = check_array(y, ensure_2d=False)
-        y = np.atleast_1d(y)
-        if y.ndim == 2 and y.shape[1] == 1:
-            y = np.ravel(y)
-        return y
-
     def _jprint(self, obj):
         """
         create a formatted string of the Python JSON object
@@ -73,86 +42,16 @@ class FMLClient:
         print(res.status_code)
         return res.json()
 
-    def _get_meta_feaures(self):
-        """
-        Function which @returns the dataset's meta features as a key, value pair
-        """
-        meta_feat_map = {}
-
-        if self.meta_features == None:
-            return meta_feat_map
-    
-        metafeature_values = self.meta_features.metafeature_values
-        for key, val in metafeature_values.items():
-            meta_feat_map[key] = val.value
-        
-        return meta_feat_map
-
-    def _get_meta_feaures_for_publish(self):
-        """
-        Function which @returns the dataset's meta features in a format
-        which can be used to in the FMLearn application
-        """
-        meta_feat_list = []
-
-        if self.meta_features == None:
-            return meta_feat_list
-
-        if self.pub_meta_feat is not None:
-            return self.pub_meta_feat
-    
-        metafeature_values = self.meta_features.metafeature_values
-        for key, val in metafeature_values.items():
-            new_feat = {}
-            new_feat['feat_name'] = str(key)
-            new_feat['feat_value'] = str(val.value)
-            meta_feat_list.append(new_feat)
-        
-        self.pub_meta_feat = meta_feat_list
-
-        return self.pub_meta_feat
-
-    def _calculate_metafeatures(self):
-        """
-        A function to calculate the dataset's meta features
-        internally called Auto-SKLearn's caclulate_all_metafeatures_with_labels()
-        and stores the returned DatasetMetaFeatures Object
-        """
-
-        categorical = [True if feat_type.lower() in ['categorical'] else False
-                   for feat_type in self.data_manager.feat_type]
-
-        EXCLUDE_META_FEATURES = EXCLUDE_META_FEATURES_CLASSIFICATION \
-            if self.data_manager.info['task'] in ask_const.CLASSIFICATION_TASKS else EXCLUDE_META_FEATURES_REGRESSION
-
-        if self.data_manager.info['task'] in [ask_const.MULTICLASS_CLASSIFICATION, ask_const.BINARY_CLASSIFICATION,
-                            ask_const.MULTILABEL_CLASSIFICATION, ask_const.REGRESSION]:
-
-            result = calculate_all_metafeatures_with_labels(
-                self.data_manager.data['X_train'], 
-                self.data_manager.data['Y_train'], 
-                categorical=categorical,
-                dataset_name=self.dataset_name,
-                dont_calculate=EXCLUDE_META_FEATURES, )
-
-            for key in list(result.metafeature_values.keys()):
-                if result.metafeature_values[key].type_ != 'METAFEATURE':
-                    del result.metafeature_values[key]
-
-        else:
-            result = None
-
-        self.meta_features = result
-
     def set_dataset(self, X, y, X_test=None, y_test=None, feat_type=None):
         """
         Stores the obtained dataset parameters in the XYDataManager of auto-sklearn
         and caclulates the metafeatures of the dataset
         """
 
-        X, y = self._perform_input_checks(X, y)
+        utils = MetaFeatures()
+        X, y = utils.perform_input_checks(X, y)
         if X_test is not None:
-            X_test, y_test = self._perform_input_checks(X_test, y_test)
+            X_test, y_test = utils.perform_input_checks(X_test, y_test)
             if len(y.shape) != len(y_test.shape):
                 raise ValueError('Target value shapes do not match: %s vs %s'
                                  % (y.shape, y_test.shape))
@@ -178,7 +77,7 @@ class FMLClient:
         self.dataset_name = FMLHash().hashValAndReturnString(str(X))
         self.data_manager = XYDataManager(X, y, X_test, y_test, task, feat_type, self.dataset_name)
 
-        self._calculate_metafeatures()
+        self.meta_features = utils.calculate_metafeatures(self.data_manager, self.dataset_name)
 
     def publish(self, model, metric_name, metric_value, params=None):
         """
@@ -189,12 +88,14 @@ class FMLClient:
 
         algorithm_name = str(model.__class__)
 
+        utils = MetaFeatures()
+
         data = {}
         data['algorithm_name'] = algorithm_name
         data['metric_name'] = metric_name
         data['metric_value'] = metric_value
         data['dataset_hash'] = self.dataset_name
-        data['data_meta_features'] = self._get_meta_feaures_for_publish()
+        data['data_meta_features'] = utils.get_meta_feaures_for_publish(self.meta_features, self.pub_meta_feat)
         data['target_type'] = self.target_type
         if params != None:
             model_params = []

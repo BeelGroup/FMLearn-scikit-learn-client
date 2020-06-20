@@ -5,7 +5,7 @@ import numpy
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
 
-    config = Configuration('fml', parent_package, top_path)
+    config = Configuration('fmlearn', parent_package, top_path)
 
     libraries = []
     if os.name == 'posix':
