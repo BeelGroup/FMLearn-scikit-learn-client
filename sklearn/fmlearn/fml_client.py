@@ -151,7 +151,7 @@ class FMLClient:
         Predicts the algorithm to be used for a given dataset using federated meta learning
         """
         if self.data_manager is None:
-            raise ValueError('Data Manager not set, set the dataset using \'set_dataset()\' before \'publish()\'')
+            raise ValueError('Data Manager not set, set the dataset using \'set_dataset()\' before \'predict_metric()\'')
 
         utils = MetaFeatures()
 

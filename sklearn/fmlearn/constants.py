@@ -7,7 +7,7 @@ class URI:
     _MAX = '/max'
     _MIN = '/min'
     _ALL = '/all'
-    _PREDICT = '/test'
+    _PREDICT = '/predict'
 
     def __init__(self, debug=False):
         if debug:
