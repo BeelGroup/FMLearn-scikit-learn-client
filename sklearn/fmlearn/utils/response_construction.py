@@ -1,7 +1,8 @@
 import json
 
 def build_response(obj, meta_data):
-    response = None
+    if not meta_data:
+        del obj['meta_features']
     return obj
 
 def construct_response(data, meta_data=False):
