@@ -12,6 +12,7 @@ def configuration(parent_package='', top_path=None):
         libraries.append('m')
 
     config.add_subpackage('encryption')
+    config.add_subpackage('utils')
     return config
 
 

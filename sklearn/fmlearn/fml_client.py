@@ -10,7 +10,8 @@ from autosklearn.data.xy_data_manager import XYDataManager
 
 from fmlearn.constants import URI
 from fmlearn.encryption.fml_hash import FMLHash
-from fmlearn.metafeatures import MetaFeatures
+from fmlearn.utils.metafeatures import MetaFeatures
+from fmlearn.utils.response_construction import *
 
 class FMLClient:
     def __init__(self, debug=False):
@@ -116,10 +117,10 @@ class FMLClient:
         else:
             data['params'] = ""
 
-        return self._post_msg(self.uri.post_metric(), data)
+        return construct_response(self._post_msg(self.uri.post_metric(), data), False)
 
 
-    def retrieve_all_metrics(self):
+    def retrieve_all_metrics(self, fetch_meta_data = False):
         """
         Function to retrieve all metric that matches the dataset_hash
         """
@@ -129,9 +130,9 @@ class FMLClient:
         data = {}
         data['dataset_hash'] = self.dataset_name
 
-        return self._post_msg(self.uri.retrieve_all(), data)
+        return construct_response(self._post_msg(self.uri.retrieve_all(), data), fetch_meta_data)
 
-    def retrieve_best_metric(self, min=True):
+    def retrieve_best_metric(self, min=True, fetch_meta_data = False):
         """
         Function to retrieve metric that best matches the dataset_hash
         @min = True fetch the minimum value of the metric
@@ -144,11 +145,13 @@ class FMLClient:
         data['dataset_hash'] = self.dataset_name
 
         if min:
-            return self._post_msg(self.uri.retrieve_best_min(), data)
+            response = self._post_msg(self.uri.retrieve_best_min(), data)
         else:
-            return self._post_msg(self.uri.retrieve_best_max(), data)
+            response = self._post_msg(self.uri.retrieve_best_max(), data)
 
-    def predict_metric(self):
+        return construct_response(response, fetch_meta_data)
+
+    def predict_metric(self, fetch_meta_data = False):
         """
         Predicts the algorithm to be used for a given dataset using federated meta learning
         """
@@ -162,7 +165,7 @@ class FMLClient:
         data['data_meta_features'] = utils.get_meta_feaures_for_publish(self.meta_features, self.pub_meta_feat)
         data['target_type'] = self.target_type
 
-        return self._get_msg(self.uri.predict_metric(), data)
+        return construct_response(self._get_msg(self.uri.predict_metric(), data), fetch_meta_data)
 
     def _test_publish(self, model=linear_model.LinearRegression(), metric_name='RMSE', metric_value='0'):
         """
