@@ -119,27 +119,29 @@ class FMLClient:
         return self._post_msg(self.uri.post_metric(), data)
 
 
-    def retrieve_all_metrics(self, dataset):
+    def retrieve_all_metrics(self):
         """
         Function to retrieve all metric that matches the dataset_hash
         """
-        dataset_hash = FMLHash().hashValAndReturnString(dataset)
+        if self.data_manager is None:
+            raise ValueError('Data Manager not set, set the dataset using \'set_dataset()\' before \'retriving metrics\'')
         
         data = {}
-        data['dataset_hash'] = dataset_hash
+        data['dataset_hash'] = self.dataset_name
 
         return self._post_msg(self.uri.retrieve_all(), data)
 
-    def retrieve_best_metric(self, dataset, min=True):
+    def retrieve_best_metric(self, min=True):
         """
         Function to retrieve metric that best matches the dataset_hash
         @min = True fetch the minimum value of the metric
         @min = False fetches the maximum value of the metric
         """
-        dataset_hash = FMLHash().hashValAndReturnString(dataset)
-        
+        if self.data_manager is None:
+            raise ValueError('Data Manager not set, set the dataset using \'set_dataset()\' before \'retriving metrics\'')
+
         data = {}
-        data['dataset_hash'] = dataset_hash
+        data['dataset_hash'] = self.dataset_name
 
         if min:
             return self._post_msg(self.uri.retrieve_best_min(), data)
@@ -162,8 +164,11 @@ class FMLClient:
 
         return self._get_msg(self.uri.predict_metric(), data)
 
-    def _test_publish(self, model=linear_model.LinearRegression(), metric_name='RMSE', metric_value='0', dataset='asdfasdfasdfd'):
+    def _test_publish(self, model=linear_model.LinearRegression(), metric_name='RMSE', metric_value='0'):
         """
         Test Function to send message to the fml backend server!
         """
-        self._jprint(self.publish(model, metric_name, metric_value, dataset))
+        if self.data_manager is None:
+            raise ValueError('Data Manager not set, set the dataset using \'set_dataset()\' before \'retriving metrics\'')
+
+        self._jprint(self.publish(model, metric_name, metric_value))
