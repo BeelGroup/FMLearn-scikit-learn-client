@@ -7,6 +7,12 @@ def build_response(obj, meta_data):
 
 def construct_response(data, meta_data=False):
     response = None
+    if data == {} or data == []:
+        print('Empty Response from Server!')
+        return response
+    if data['response'] != "":
+        print(data['response'])
+        return
     if type(data) == list:
         response = []
         for obj in data:
