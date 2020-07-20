@@ -10,7 +10,7 @@ def construct_response(data, meta_data=False):
     if data == {} or data == []:
         print('Empty Response from Server!')
         return response
-    if data['response'] != "":
+    if 'response' in data:
         print(data['response'])
         return
     if type(data) == list:
