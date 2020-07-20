@@ -40,7 +40,8 @@ class FMLClient:
         POST method API call to the federated meta learning server
         """
         res = req.post(uri, json=data)
-        print(res.status_code)
+        # requests.raise_for_status() method handles raising HTTPError Exceptions for HTTP codes between 400-600
+        res.raise_for_status()
         return res.json()
 
     def _get_msg(self, uri, data=None):
@@ -48,7 +49,8 @@ class FMLClient:
         GET method API call to the federated meta learning server
         """
         res = req.get(uri, json=data)
-        print(res.status_code)
+        # requests.raise_for_status() method handles raising HTTPError Exceptions for HTTP codes between 400-600
+        res.raise_for_status()
         return res.json()
 
     def set_dataset(self, X, y, X_test=None, y_test=None, feat_type=None):
